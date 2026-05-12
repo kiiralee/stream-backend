@@ -1,5 +1,7 @@
-import { Field, HideField, ID, ObjectType } from '@nestjs/graphql';
+import { Field, ID, ObjectType } from '@nestjs/graphql';
 import type { User } from '@/prisma/generated/client';
+import { StreamModel } from '@/src/modules/stream/models/stream.model';
+import { SocialLinkModel } from '../../profile/models/social-link.model';
 
 @ObjectType()
 export class UserModel implements User {
@@ -33,7 +35,7 @@ export class UserModel implements User {
   @Field(() => Boolean)
   public isTotpEnabled: boolean;
 
-  @HideField()
+  @Field(() => String, { nullable: true })
   public totpSecret: string | null;
 
   @Field(() => Boolean)
@@ -41,6 +43,12 @@ export class UserModel implements User {
 
   @Field(() => Date, { nullable: true })
   public deactivatedAt: Date | null;
+
+  @Field(() => [SocialLinkModel])
+  public socialLinks: SocialLinkModel[];
+
+  @Field(() => StreamModel)
+  public stream: StreamModel;
 
   @Field(() => Date)
   public createdAt: Date;

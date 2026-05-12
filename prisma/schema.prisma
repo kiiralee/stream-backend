@@ -2,6 +2,7 @@ generator client {
   provider     = "prisma-client"
   output       = "./generated"
   moduleFormat = "cjs"
+  importFileExtension = "js"
 }
 
 datasource db {
@@ -30,11 +31,69 @@ model User {
   deactivatedAt DateTime? @map("deactivated_at")
 
   tokens Token[]
+  socialLinks SocialLink[]
+  stream Stream?
 
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+model SocialLink {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+
+  title String
+  url String
+  position Int
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String? @map("user_id")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("social_links")
+}
+
+model Stream {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+  
+  title String
+  thumbnailUrl String? @map("thumbnail_url")
+
+  ingressId String? @unique @map("ingress_id")
+  serverUrl String? @map("server_url")
+  streamKey String? @map("stream_key")
+
+  isLive Boolean @default(false) @map("is_live")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique @map("user_id")
+
+  category Category? @relation(fields: [categoryId], references: [id])
+  categoryId String? @map("category_id")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("streams")
+}
+
+model Category {
+  id String @id @default(dbgenerated("gen_random_uuid()::text"))
+
+  title String
+  slug String @unique
+  description String?
+  thumbnailUrl String? @map("thumbnail_url")
+
+  streams Stream[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("categories")
 }
 
 model Token {

@@ -1,19 +1,18 @@
-import './bootstrap-paths';
-import 'tsconfig-paths/register';
-
 import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { RedisStore } from 'connect-redis';
 import cookieParser from 'cookie-parser';
 import session from 'express-session';
+import 'tsconfig-paths/register';
+import './bootstrap-paths';
 import { CoreModule } from './core/core.module';
 import { RedisService } from './core/redis/redis.service';
 import { ms, type StringValue } from './shared/utils/ms.util';
 import { parseBoolean } from './shared/utils/parse-boolean.util';
 
 async function bootstrap() {
-  const app = await NestFactory.create(CoreModule);
+  const app = await NestFactory.create(CoreModule, { rawBody: true });
 
   const config = app.get(ConfigService);
   const redis = app.get(RedisService);
