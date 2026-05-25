@@ -1,98 +1,121 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Teastream Backend
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+Backend API для платформы live-стриминга **Teastream**: аутентификация, каналы, стримы (LiveKit), чат, подписки (Stripe), уведомления (email / Telegram / in-app).
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Возможности
 
-## Description
+- GraphQL API (queries, mutations, subscriptions)
+- Сессии в Redis + cookie-based auth
+- Live-стриминг через LiveKit Ingress
+- Чат в реальном времени (GraphQL Subscriptions)
+- Подписки и платежи (Stripe Checkout + webhooks)
+- Email (React Email) и Telegram-бот
+- Фоновые задачи (`@nestjs/schedule`)
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Архитектура (кратко)
 
-## Project setup
+Один deployable-сервис — **NestJS monolith**. Доменная логика разбита на модули в `src/modules/`. Подробности: [docs/architecture/overview.md](docs/architecture/overview.md).
 
-```bash
-$ yarn install
+```
+Client → GraphQL (/graphql) + REST webhooks (/webhook/*)
+              ↓
+        NestJS (CoreModule)
+    ┌─────────┼─────────┐
+    ↓         ↓         ↓
+ PostgreSQL  Redis   LiveKit / Stripe / SMTP / Telegram
 ```
 
-## Compile and run the project
+## Структура репозитория
+
+| Путь | Назначение |
+|------|------------|
+| [`src/core/`](src/core/README.md) | Prisma, Redis, GraphQL config, bootstrap |
+| [`src/modules/auth/`](src/modules/auth/README.md) | Регистрация, сессии, 2FA, профиль |
+| [`src/modules/stream/`](src/modules/stream/README.md) | Стримы, LiveKit ingress, токены |
+| [`src/modules/chat/`](src/modules/chat/README.md) | Чат и подписки на сообщения |
+| [`src/modules/channel/`](src/modules/channel/README.md) | Публичные каналы |
+| [`src/modules/category/`](src/modules/category/README.md) | Категории контента |
+| [`src/modules/follow/`](src/modules/follow/README.md) | Подписки на каналы |
+| [`src/modules/notification/`](src/modules/notification/README.md) | In-app уведомления |
+| [`src/modules/sponsorship/`](src/modules/sponsorship/README.md) | Планы, подписки, платежи |
+| [`src/modules/webhook/`](src/modules/webhook/README.md) | LiveKit & Stripe webhooks |
+| [`src/modules/cron/`](src/modules/cron/README.md) | Планировщик задач |
+| [`src/modules/libs/`](src/modules/libs/README.md) | Интеграции (Mail, Stripe, LiveKit, Telegram) |
+| [`prisma/`](prisma/schema.prisma) | Схема БД и миграции |
+| [`docs/`](docs/README.md) | Централизованная документация |
+
+## Quick Start
+
+### Требования
+
+- Node.js 22+
+- Yarn
+- Docker (PostgreSQL + Redis)
+
+### 1. Зависимости и env
 
 ```bash
-# development
-$ yarn run start
-
-# watch mode
-$ yarn run start:dev
-
-# production mode
-$ yarn run start:prod
+yarn install
+cp .env.example .env
+# Отредактируйте .env под локальную среду
 ```
 
-## Run tests
+### 2. Инфраструктура
 
 ```bash
-# unit tests
-$ yarn run test
-
-# e2e tests
-$ yarn run test:e2e
-
-# test coverage
-$ yarn run test:cov
+docker compose up -d
 ```
 
-## Deployment
+PostgreSQL: `localhost:5433`, Redis: `localhost:6379` (см. [docs/infra/docker-compose.md](docs/infra/docker-compose.md)).
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+### 3. База данных
 
 ```bash
-$ yarn install -g @nestjs/mau
-$ mau deploy
+npx prisma migrate deploy
+npx prisma generate
+yarn db:seed   # опционально: демо-данные
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+### 4. Запуск
 
-## Resources
+```bash
+yarn start:dev
+```
 
-Check out a few resources that may come in handy when working with NestJS:
+- GraphQL Playground (только `NODE_ENV=development`): `http://localhost:3000/graphql`
+- Схема: [`src/core/graphql/shema.gql`](src/core/graphql/shema.gql)
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+## Основные команды
 
-## Support
+| Команда | Описание |
+|---------|----------|
+| `yarn start:dev` | Dev-сервер с hot reload |
+| `yarn build` | Production build → `dist/` |
+| `yarn start:prod` | `node dist/src/main.js` |
+| `yarn lint:check` | ESLint |
+| `yarn format:check` | Prettier |
+| `yarn test` | Unit tests (Jest) |
+| `yarn test:e2e` | E2E tests |
+| `yarn db:seed` | Seed БД |
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Документация
 
-## Stay in touch
+| Раздел | Ссылка |
+|--------|--------|
+| Навигация по docs | [docs/README.md](docs/README.md) |
+| Onboarding | [docs/onboarding/developer-setup.md](docs/onboarding/developer-setup.md) |
+| Архитектура | [docs/architecture/overview.md](docs/architecture/overview.md) |
+| API (GraphQL) | [docs/api/graphql.md](docs/api/graphql.md) |
+| Deployment | [docs/deployment/local.md](docs/deployment/local.md) |
+| Contributing | [docs/contributing/code-standards.md](docs/contributing/code-standards.md) |
+| Security | [docs/security/auth-sessions.md](docs/security/auth-sessions.md) |
+| ADR | [docs/decisions/](docs/decisions/) |
+| AI / Cursor | [docs/ai-friendly.md](docs/ai-friendly.md) |
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Onboarding
+
+Новому разработчику: [docs/onboarding/developer-setup.md](docs/onboarding/developer-setup.md) → [docs/onboarding/first-contribution.md](docs/onboarding/first-contribution.md).
 
 ## License
 
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+UNLICENSED (private).
