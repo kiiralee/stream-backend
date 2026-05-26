@@ -1,8 +1,14 @@
 import { GraphQLClient } from 'graphql-request';
 import { env } from '@/shared/config/env';
 
+// graphql-request v7 calls `new URL(url)` internally — fails on relative paths like "/graphql".
+// Resolve to an absolute URL so dev-proxy (same-origin via vite) still works.
+const gqlUrl = /^https?:\/\//.test(env.VITE_GRAPHQL_URL)
+  ? env.VITE_GRAPHQL_URL
+  : `${window.location.origin}${env.VITE_GRAPHQL_URL.startsWith('/') ? '' : '/'}${env.VITE_GRAPHQL_URL}`;
+
 // Single GraphQL client. `credentials: 'include'` is critical — backend uses session cookies.
-export const gqlClient = new GraphQLClient(env.VITE_GRAPHQL_URL, {
+export const gqlClient = new GraphQLClient(gqlUrl, {
   credentials: 'include',
   // Throw rich errors so TanStack Query can show real messages, not "Network error".
   errorPolicy: 'none',

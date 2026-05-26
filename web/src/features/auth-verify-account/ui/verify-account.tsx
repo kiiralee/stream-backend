@@ -6,7 +6,7 @@ import { gqlRequest, ops } from '@/shared/api';
 import { QK } from '@/shared/config/query-keys';
 import { ROUTES } from '@/shared/config/routes';
 import { notify } from '@/shared/lib/notify';
-import type { VerificationInput } from '@/shared/types/api';
+import type { UserModel, VerificationInput } from '@/shared/types/api';
 
 export function VerifyAccount() {
   const [sp] = useSearchParams();
@@ -17,12 +17,22 @@ export function VerifyAccount() {
 
   const mut = useMutation({
     mutationFn: (data: VerificationInput) =>
-      gqlRequest<{ verifyAccount: { id: string } }, { data: VerificationInput }>(
+      gqlRequest<{ verifyAccount: UserModel }, { data: VerificationInput }>(
         ops.MUT_VERIFY_ACCOUNT,
         { data },
       ),
     onSuccess: async () => {
-      await qc.invalidateQueries({ queryKey: QK.profile });
+      // Backend set the session cookie on the verify response. The verifyAccount
+      // payload doesn't carry the full profile (no stream / socialLinks / settings),
+      // so seed the cache by issuing a real findProfile request — that also confirms
+      // the cookie made it back to the browser before we navigate.
+      try {
+        const data = await gqlRequest<{ findProfile: UserModel }>(ops.QUERY_PROFILE);
+        qc.setQueryData(QK.profile, data.findProfile);
+      } catch {
+        // Fall back to passive invalidation; next consumer will refetch.
+        await qc.invalidateQueries({ queryKey: QK.profile });
+      }
       notify.success('Email verified — welcome aboard!');
       navigate(ROUTES.home);
     },
