@@ -18,7 +18,7 @@ interface VerificationTemplate {
 }
 
 export function VerificationTemplate({ domain, token }: VerificationTemplate) {
-    const verificationLink = `${domain}/account/verify?token=${token}`
+    const verificationLink = `${domain}/verify?token=${token}`
 
     return (
         <Html>

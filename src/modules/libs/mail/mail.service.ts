@@ -19,8 +19,19 @@ export class MailService {
     private readonly configService: ConfigService,
   ) {}
 
+  // Frontend origin used to build clickable links in email templates.
+  // Separate from ALLOWED_ORIGIN (CORS allowlist) — in some deploys email points to
+  // a public web host while CORS allowlists an internal one. Falls back to
+  // ALLOWED_ORIGIN for backward compat with older configs.
+  private getFrontendUrl(): string {
+    const url =
+      this.configService.get<string>('FRONTEND_URL') ??
+      this.configService.getOrThrow<string>('ALLOWED_ORIGIN');
+    return url.replace(/\/+$/, '');
+  }
+
   public async sendVerificationToken(email: string, token: string) {
-    const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN');
+    const domain = this.getFrontendUrl();
     const html = await render(VerificationTemplate({ domain, token }));
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -28,7 +39,7 @@ export class MailService {
   }
 
   public async sendPasswordResetToken(email: string, token: string, metadata: SessionMetadata) {
-    const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN');
+    const domain = this.getFrontendUrl();
     const html = await render(PasswordRecoveryTemplate({ domain, token, metadata }));
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -43,14 +54,14 @@ export class MailService {
   }
 
   public async sendAccountDeletion(email: string) {
-    const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN');
+    const domain = this.getFrontendUrl();
     const html = await render(AccountDeletionTemplate({ domain }));
 
     return this.sendMail(email, 'Аккаунт удален', html);
   }
 
   public async sendEnableTwoFactor(email: string) {
-    const domain = this.configService.getOrThrow<string>('ALLOWED_ORIGIN');
+    const domain = this.getFrontendUrl();
     const html = await render(EnableTwoFactorTemplate({ domain }));
 
     return this.sendMail(email, 'Обеспечьте свою безопасность', html);
